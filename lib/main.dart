@@ -1,5 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
-//import 'package:http/http.dart' as http;
+import 'package:http/http.dart' as http;
 
 void main() {
   runApp(
@@ -18,7 +20,7 @@ class MyApp extends StatelessWidget {
         appBar: AppBar(
           title: const Text("Beer list"),
         ),
-        backgroundColor: Colors.white60,
+        backgroundColor: Colors.white70,
         body: const BeerList(),
       ),
     );
@@ -28,6 +30,10 @@ class MyApp extends StatelessWidget {
 class Beer {
   String title, description, imageUrl;
   Beer(this.title, this.description, this.imageUrl);
+  Beer.fromJson(Map<String, dynamic> json)
+      : title = json['name'],
+        description = json['description'],
+        imageUrl = json['image_url'];
 }
 
 class BeerList extends StatefulWidget {
@@ -40,8 +46,8 @@ class BeerList extends StatefulWidget {
 }
 
 class _BeerListState extends State<BeerList> {
-  bool load = true;
-  List<Beer> beers = [];
+  late bool load;
+  late List<Beer> beers;
 
   @override
   void initState() {
@@ -54,7 +60,20 @@ class _BeerListState extends State<BeerList> {
     super.initState();
   }
 
-  void _loadBeers() async {}
+  void _loadBeers() async {
+    final response = await http.get(Uri.parse(
+        'https://api.punkapi.com/v2/beers?brewed_before=11-2012&abv_gt=6'));
+    final json = jsonDecode(response.body);
+
+    List<Beer> _beers = [];
+    for (var jsonBeer in json['results']) {
+      _beers.add(Beer.fromJson(jsonBeer));
+    }
+    setState(() {
+      beers = _beers;
+      load = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -63,10 +82,18 @@ class _BeerListState extends State<BeerList> {
         return ListTile(
           title: Text(beers[index].title),
           subtitle: Text(beers[index].description),
-          leading: Icon(Icons.delete),
+          leading: Image(
+            image: NetworkImage(beers[index].imageUrl),
+          ),
         );
       },
       itemCount: beers.length,
     );
   }
 }
+
+/*Falta:
+- Separar el widget de la lista en una carpeta de componentes
+- Estilizar la página
+- Crear otro componente para cada elemento de la lista
+- Realizar el enrutamiento  */
